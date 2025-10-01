@@ -1,0 +1,6 @@
+{
+    "require": {
+        "unax/logger": "^1.1",
+        "unax/helper": "1.0.3"
+    }
+}
