@@ -20,6 +20,13 @@ class Request {
     public static string $uri = '';
 
 	/**
+	 * Endpoints.
+	 *
+	 * @var array
+	 */
+	protected static array $endpoints = array();
+
+	/**
 	 * Endpoint.
 	 *
 	 * @var string
@@ -33,12 +40,20 @@ class Request {
 	 */
 	protected static $parameters = array();
 
+
 	/**
-	 * Request result data set.
+	 * Request data.
+	 *
+	 * @var array
+	 */	
+	protected static $data = array();
+
+	/**
+	 * Request result.
 	 *
 	 * @var array
 	 */
-	public static $dataSet = array();
+	public static $result = array();
 
 	/**
 	 * Set uri.
@@ -51,93 +66,117 @@ class Request {
 
 
 	/**
-	 * Set endpoint.
+	 * Set endpoints.
 	 *
 	 * @param string $endpoint The endpoint to set.
 	 */
-	public static function set_endpoint( string $endpoint ) {
-		static::$endpoint = $endpoint;
+	public static function set_endpoints( array $endpoints ): void {
+		static::$endpoints = $endpoints;
 	}
 
 
 	/**
-     * Set the value of a property.
+	 * Set endpoint.
+	 *
+	 * @param string $endpoint The endpoint to set.
+	 */
+	public static function set_endpoint( string $endpoint ): void {
+		self::$endpoint = $endpoint;
+	}
+
+
+	/**
+     * Set parameters.
      *
      * @param string $property Property name.
      * @param mixed  $value    Property value.
-     *
-     * @return array|bool
+	 * 
+	 * @throws \Exception If the endpoint is not set or invalid, or if a required property is missing or invalid.
      */
-    public static function set_parameters() {
+    public static function set_parameters( array $parameters ): void {
+		self::$parameters = $parameters;
+	}
+
+
+	/**
+     * Prepare request data.
+	 * 
+	 * @param array $request_data Data to prepare.
+	 * 
+	 * @return string
+	 * 
+	 * @throws \Exception If the endpoint is not set or invalid, or if a required property is missing or invalid.
+     */
+    public static function prepare( $request_data = array() ): string {
+		$data = '';
+
         try {
             $endpoints = self::$endpoints;
 
             // Check endpoint.
-            if ( empty( static::$endpoint ) ) {
+            if ( empty( self::$endpoint ) ) {
                 throw new \Exception(
                     sprintf(
                         'Endpoint "%s" not set',
-                        static::$endpoint
+                        self::$endpoint
                     ),
                     1
                 );
             }
 
-            if ( ! isset( $endpoints[ static::$endpoint ] ) ) {
+            if ( ! isset( $endpoints[ self::$endpoint ] ) ) {
                 throw new \Exception(
                     sprintf(
                         'Endpoint "%s" not valid',
-                        static::$endpoint
-                    ),
-                    1
-                );
-            }
-
-            if ( ! isset( $endpoints[ static::$endpoint ] ) ) {
-                throw new \Exception(
-                    sprintf(
-                        'Operation "%s" not valid',
-                        static::$endpoint
+                        self::$endpoint
                     ),
                     2
                 );
             }
 
             // Get endpoint schema.
-            $schema = $endpoints[ static::$endpoint ];
+            $schema = $endpoints[ self::$endpoint ];
 
             // Set parameters.
-            $parameters = array();
-            $class_parameters = ! empty( static::$parameters ) ? static::$parameters : self::$parameters;
-            foreach ( $class_parameters as $property ) {
-                // Check if the property is set.
-                if ( ! isset( $schema[ $property ] ) ) {
+            $data = array();
+            foreach ( self::$parameters as $parameter ) {
+                if ( ! isset( $schema[ $parameter ] ) ) {
                     throw new \Exception(
                         sprintf(
                             'Property "%s" for endpoint "%s" not found in schema',
-                            $property,
-                            static::$endpoint
+                            $parameter,
+                            self::$endpoint
                         ),
                         3
                     );
                 }
 
-                $required = isset( $schema[ $property ]['required'] ) ? $schema[ $property ]['required'] : false;
+                $required = isset( $schema[ $parameter ]['required'] ) ? $schema[ $parameter ]['required'] : false;
                 if ( true === $required ) {
-                    if ( static::${$property} === null ) {
+					if ( ! isset( $request_data[ $parameter ] ) ) {
                         throw new \Exception(
                             sprintf(
-                                "Required property [%s] is null",
-                                $property,
+                                "Required property [%s] not set",
+                                $parameter,
                             ),
                             3
                         );
                     }
-                    if ( static::${$property} === '' ) {
+
+                    if ( $request_data[ $parameter ] === null ) {
+                        throw new \Exception(
+                            sprintf(
+                                "Required property [%s] is null",
+                                $parameter,
+                            ),
+                            3
+                        );
+                    }
+                    if ( $request_data[ $parameter ] === '' ) {
                         throw new \Exception(
                             sprintf(
                                 "Required property [%s] is empty",
-                                $property,
+                                $parameter,
                             ),
                             3
                         );
@@ -145,40 +184,45 @@ class Request {
                 }
 
                 // Check if the property is set and if is not set do not add it to parameters array.
-                if ( null === static::${$property} || '' === static::${$property} ) {
+                if ( null === $request_data[ $parameter ] || '' === $request_data[ $parameter ] ) {
                     continue;
                 }
 
-                if ( ! API_Helper::validate_parameter( static::${$property}, static::$endpoint, true, $property )  ) {
+                if ( ! API_Helper::validate_parameter( $data[ $parameter ], self::$endpoint, $parameter )  ) {
                     throw new \Exception(
                         sprintf(
                             "Invalid parameter, property [%s] value '%s'",
-                            $property,
-                            static::${$property}
+                            $parameter,
+                            $request_data[ $parameter ]
                         ),
                         3
                     );
                 }
-
-                $parameters[ $property ] = static::${$property};
             }
 
-            return $parameters;
+			// Convert to JSON.
+			$data = json_encode( $request_data );
+			if ( false === $data ) {
+                throw new \Exception( sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 5 );
+            }
         } catch ( \Exception $e ) {
-            API_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', static::$endpoint ) );
-            return false;
-        }
+            API_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', self::$endpoint ) );
+			return '';
+        } finally {
+			return $data;
+		}
     }
 
 
 	/**
-	 * Get the value of $dataSet.
+	 * Get result.
 	 *
 	 * @return array
 	 */
-	public static function getDataSet() {
-		return static::$dataSet;
+	public static function get_result() {
+		return self::$result;
 	}
+
 
 	/**
 	 * Set the value of $dataSet.
@@ -187,130 +231,92 @@ class Request {
 	 *
 	 * @return void
 	 */
-	public static function setDataSet( $dataSet ) {
-		static::$dataSet = $dataSet;
+	public static function set_result( $result ) {
+		self::$result = $result;
 	}
 
-	/**
-	 * Prepare request data with validation.
-	 *
-	 * @return array|bool
-	 */
-	public static function prepare() {
-		try {
-			$objects = Connector::$objects;
-
-			// Check object.
-			if ( empty( static::$object ) ) {
-				throw new \Exception(
-					sprintf(
-						'Object "%s" not set',
-						static::$object
-					),
-					1
-				);
-			}
-
-			if ( ! isset( $objects[ static::$object ] ) ) {
-				throw new \Exception(
-					sprintf(
-						'Object "%s" not valid',
-						static::$object
-					),
-					2
-				);
-			}
-
-			// Get object schema.
-			$schema = $objects[ static::$object ];
-
-			// Set parameters.
-			$parameters = array();
-			$class_parameters = ! empty( static::$parameters ) ? static::$parameters : self::$parameters;
-			foreach ( $class_parameters as $property ) {
-				// Check if the property is set.
-				if ( ! isset( $schema[ $property ] ) ) {
-					throw new \Exception(
-						sprintf(
-							'Property "%s" for object "%s" not found in schema',
-							$property,
-							static::$object
-						),
-						3
-					);
-				}
-
-				$required = isset( $schema[ $property ]['required'] ) ? $schema[ $property ]['required'] : false;
-				if ( true === $required ) {
-					if ( static::${$property} === null ) {
-						throw new \Exception(
-							sprintf(
-								'Required property [%s] is null',
-								$property,
-							),
-							3
-						);
-					}
-					if ( static::${$property} === '' ) {
-						throw new \Exception(
-							sprintf(
-								'Required property [%s] is empty',
-								$property,
-							),
-							3
-						);
-					}
-				}
-
-				// Check if the property is set and if is not set do not add it to parameters array.
-				if ( null === static::${$property} || '' === static::${$property} ) {
-					continue;
-				}
-
-				if ( ! Connector::validate_parameter( static::${$property}, static::$object, true, $property ) ) {
-					throw new \Exception(
-						sprintf(
-							'Invalid parameter, property [%s] value "%s"',
-							$property,
-							static::${$property}
-						),
-						3
-					);
-				}
-
-				$parameters[ $property ] = static::${$property};
-			}
-
-			return wp_json_encode( $parameters );
-		} catch ( \Exception $e ) {
-			Connector::handle_exception( $e, static::$object . '::prepare()' );
-			return false;
-		}
-	}
 
 	/**
 	 * Request.
 	 *
 	 * @return array|bool
 	 */
-	public static function request() {
-		// Prepare request data.
-		$prepared_data = static::prepare();
-		if ( false === $prepared_data ) {
-			return false;
-		}
+	public static function request( $request_data = array(), $method = 'POST' ) {
+		$data = self::prepare( $request_data );
 
 		// API request.
-		$request = Connector::request( static::$object, $prepared_data );
+		$args = array(
+			'method'  => $method,
+			'headers' => array(
+				'Content-Type' => 'application/json',
+			),
+			'body'    => $data,
+			'timeout' => 30,
+		);
+
+		$request = wp_remote_request( self::$uri, $args );
 
 		// Get response.
-		$response = Connector::response( $request );
+		$response = self::response( $request );
 		if ( false === $response['success'] ) {
 			return false;
 		}
 
-		self::setDataSet( $response['data'] );
-
 		return $response;
 	}
+
+
+	/**
+     * Response.
+     *
+     * @param array $request
+     *
+     * @return array {
+     *     @type bool       $success Indicates if the response was successful.
+     *     @type int|string $code    Error code or response code.
+     *     @type string     $message Response or error message.
+     *     @type array      $data    Response data (usually an array of results).
+     * }
+     */
+    public static function response( $request ) : array {
+        // Initial values.
+        $response = array(
+            'success' => false,
+            'code'    => 0,
+            'message' => '',
+            'data'    => array(),
+        );
+
+        try {
+            if ( false === $request ) {
+                $response['code']    = 11;
+                $response['message'] = 'Request failed';
+
+                return $response;
+            }
+
+            // Get response body.
+            $response_body = wp_remote_retrieve_body( $request );
+            if ( '' === $response_body ) {
+                throw new \Exception( 'Response body empty', 9 );
+            }
+
+            // Decode response body.
+            $body = json_decode( $response_body, true );
+            if ( empty( $body ) ) {
+                throw new \Exception( sprintf( 'Decode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 6 );
+            }
+
+            $response['success'] = true;
+            $response['data']    = $body;
+
+            return $response;
+        } catch ( \Throwable $e ) {
+            self::handle_exception( $e, 'API response' );
+            $response['code']    = $e->getCode();
+            $response['message'] = $e->getMessage();
+
+            return $response;
+        }
+    }
 }

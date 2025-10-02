@@ -17,6 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 interface Courier_API_Interface {
 	/**
+	 * Get courier endpoints.
+	 *
+	 * @return array Array of endpoints supported by the courier.
+	 */
+	public function get_endpoints();
+
+
+	/**
 	 * Get supported countries.
 	 *
 	 * @return array Array of country codes supported by the courier.

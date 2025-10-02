@@ -142,7 +142,7 @@ class API_Helper {
      *
      * @return bool True if valid, false if invalid.
      */
-    public static function validate_parameter( $value, string $endpoint, bool $strict, string ...$config_key ) {
+    public static function validate_parameter( $value, string $endpoint, string ...$config_key ) {
         try {
             if ( empty( $endpoint ) ) {
                 throw new \Exception( self::$error_codes[2], 2 );
@@ -263,7 +263,7 @@ class API_Helper {
 
             return true;
         } catch ( \Exception $e ) {
-            self::handle_exception( $e, "Validate parameters", $strict );
+            self::handle_exception( $e, "Validate parameters" );
             return false;
         }
     }
