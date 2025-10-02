@@ -238,10 +238,12 @@ class Request {
 
 	/**
 	 * Request.
+	 * 
+	 * @param array  $request_data Data to send in the request.
 	 *
-	 * @return array|bool
+	 * @return array|WP_Error The response data or WP_Error on failure.
 	 */
-	public static function request( $request_data = array(), $method = 'POST' ) {
+	public static function request( $request_data = array(), $method = 'GET' ) {
 		$data = self::prepare( $request_data );
 
 		// API request.
@@ -254,22 +256,14 @@ class Request {
 			'timeout' => 30,
 		);
 
-		$request = wp_remote_request( self::$uri, $args );
-
-		// Get response.
-		$response = self::response( $request );
-		if ( false === $response['success'] ) {
-			return false;
-		}
-
-		return $response;
+		return wp_remote_request( self::$uri, $args );
 	}
 
 
 	/**
      * Response.
      *
-     * @param array $request
+     * @param array|WP_Error $request The request response.
      *
      * @return array {
      *     @type bool       $success Indicates if the response was successful.
@@ -288,12 +282,10 @@ class Request {
         );
 
         try {
-            if ( false === $request ) {
-                $response['code']    = 11;
-                $response['message'] = 'Request failed';
-
-                return $response;
-            }
+			// Check if request is WP Error.
+			if ( is_wp_error( $request ) ) {
+				throw new \Exception( $request->get_error_message(), 11 );
+			}
 
             // Get response body.
             $response_body = wp_remote_retrieve_body( $request );
@@ -312,7 +304,7 @@ class Request {
 
             return $response;
         } catch ( \Throwable $e ) {
-            self::handle_exception( $e, 'API response' );
+            API_Helper::handle_exception( $e, 'API response' );
             $response['code']    = $e->getCode();
             $response['message'] = $e->getMessage();
 

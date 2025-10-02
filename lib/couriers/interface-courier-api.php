@@ -3,7 +3,6 @@
  * Courier API Interface
  *
  * @package Easy_Shipping
- * @author  Unax
  */
 
 namespace Easy_Shipping\Lib\Courier_API;
