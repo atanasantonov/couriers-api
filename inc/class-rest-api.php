@@ -9,10 +9,11 @@ namespace Easy_Shipping_API\Inc;
 
 defined( 'ABSPATH' ) || exit;
 
-use Unax\Helper\Helper;
 use WP_REST_Request;
 use WP_REST_Response;
 use Exception;
+use Easy_Shipping_API\Inc\Request\Request_Helper;
+use Easy_Shipping\Lib\Courier_Factory;
 
 /**
  * Class Rest API.
@@ -71,7 +72,7 @@ class Rest_API {
 			'callback'            => array( 'Easy_Shipping_API\Inc\Rest_API', 'search' ),
 			'permission_callback' => array( 'Easy_Shipping_API\Inc\Rest_API', 'authorize' ),
 		));
-
+ 
 		register_rest_route( 'api/v1', '/calculate', array(
 			'methods'             => 'GET',
 			'callback'            => array( 'Easy_Shipping_API\Inc\Rest_API', 'calculate_shipping' ),
@@ -103,10 +104,22 @@ class Rest_API {
 		// Check if the request has a valid API key.
 		$api_key = $request->get_header( 'X-API-Key' );
 		if ( empty( $api_key ) ) {
-			return false;
+			// return false;
 		}
 
 		return true;
+	}
+
+
+	/**
+	 * Get courier instance from request.
+	 *
+	 * @param WP_REST_Request $request The REST API request object.
+	 *
+	 * @return \Easy_Shipping\Lib\Courier_API\Courier_API_Interface|\WP_Error
+	 */
+	private static function get_courier_instance( WP_REST_Request $request ): \Easy_Shipping\Lib\Courier_API\Courier_API_Interface|\WP_Error {
+		return Courier_Factory::create( $request );
 	}
 
 
@@ -121,8 +134,28 @@ class Rest_API {
 	 */
 	public static function get_cities( WP_REST_Request $request ): WP_REST_Response {
 		try {
-			$items = array();
-	
+			$courier = self::get_courier_instance( $request );
+			if ( is_wp_error( $courier ) ) {
+				return Request_Helper::handle_wp_error( $courier );
+			}
+
+			$params = $request->get_params();
+			$items  = $courier->get_cities( $params );
+
+			if ( is_wp_error( $items ) ) {
+				$error_data = $items->get_error_data();
+				$status_code = 500;
+
+				if ( isset( $error_data['status'] ) ) {
+					$status_code = $error_data['status'];
+				}
+
+				return new WP_REST_Response(
+					array( 'message' => $items->get_error_message() ),
+					$status_code
+				);
+			}
+
 			return new WP_REST_Response( $items, 200 );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
@@ -176,8 +209,44 @@ class Rest_API {
 	 */
 	public static function get_offices_by_type( WP_REST_Request $request, $type = 'real' ): WP_REST_Response  {
 		try {
-			$items = array();
-	
+			$courier = self::get_courier_instance( $request );
+
+			if ( is_wp_error( $courier ) ) {
+				$error_data = $courier->get_error_data();
+				$status_code = 400;
+
+				if ( isset( $error_data['status'] ) ) {
+					$status_code = $error_data['status'];
+				}
+
+				return new WP_REST_Response(
+					array( 'message' => $courier->get_error_message() ),
+					$status_code
+				);
+			}
+
+			$params = $request->get_params();
+
+			if ( $type === 'machine' ) {
+				$items = $courier->get_machines( $params );
+			} else {
+				$items = $courier->get_offices( $params );
+			}
+
+			if ( is_wp_error( $items ) ) {
+				$error_data = $items->get_error_data();
+				$status_code = 500;
+
+				if ( isset( $error_data['status'] ) ) {
+					$status_code = $error_data['status'];
+				}
+
+				return new WP_REST_Response(
+					array( 'message' => $items->get_error_message() ),
+					$status_code
+				);
+			}
+
 			return new WP_REST_Response( $items, 200 );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );

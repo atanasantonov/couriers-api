@@ -26,12 +26,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'EASY_SHIPPING_API_NAME', 'couriers-api' );
+define( 'EASY_SHIPPING_API_SLUG', 'easy-shipping-api' );
 define( 'EASY_SHIPPING_API_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EASY_SHIPPING_API_URL', plugin_dir_url( __FILE__ ) );
 define( 
 	'EASY_SHIPPING_API_ERROR_CODES', 
 	array(
+		// Request related.
 		1  => 'Invalid endpoint',
 		2  => 'Missing endpoint',
 		3  => 'Invalid parameter',
@@ -44,6 +45,17 @@ define(
 		10 => 'Response dataset empty',
 		11 => 'Request failed',
 		12 => 'Response data contain errors',
+
+		// REST API related.
+		30 => 'Authentication failed',
+
+		// Courier related.
+		40 => 'Courier country missing',
+		41 => 'Courier name missing',
+		42 => 'Courier not supported',
+		43 => 'Courier configuration file not found',
+
+		// General.
 		90 => 'Configuration error',
 		99 => 'Unknown error',
 	)
@@ -53,10 +65,19 @@ define(
 require EASY_SHIPPING_API_PATH . 'vendor/autoload.php';
 
 // Include main class.
+require EASY_SHIPPING_API_PATH . 'lib/couriers/class-courier-factory.php';
 require EASY_SHIPPING_API_PATH . 'inc/class-easy-shipping-api.php';
+require EASY_SHIPPING_API_PATH . 'inc/request/class-request-helper.php';
+require EASY_SHIPPING_API_PATH . 'inc/request/class-request.php';	
 
 add_action( 'init', array( '\Easy_Shipping_API\Inc\Easy_Shipping_API', 'load_textdomain' ) );
 add_action( 'rest_api_init', array( '\Easy_Shipping_API\Inc\Rest_API', 'register_rest_fields' ) );
 
 Helper::set_log_threshold( WP_DEBUG ? 'debug' : 'error' );
 Helper::config();
+
+add_action( 'wp', function() {
+	echo '<pre>';
+	print_r( \Easy_Shipping\Lib\Couriers\Courier_Factory::get_supported_couriers() );
+	echo '</pre>';
+} );

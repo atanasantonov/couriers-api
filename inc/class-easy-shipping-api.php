@@ -23,7 +23,7 @@ class Easy_Shipping_API {
 	 * @return void
 	 */
 	public static function load_textdomain() {
-		load_plugin_textdomain( 'easy-shipping', false, EASY_SHIPPING_SLUG . '/languages' );
+		load_plugin_textdomain( 'easy-shipping', false, EASY_SHIPPING_API_SLUG . '/languages' );
 	}
 
 

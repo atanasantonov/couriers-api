@@ -5,9 +5,9 @@
  * @package Easy_Shipping
  */
 
-namespace Easy_Shipping\Lib\Courier_API;
+namespace Easy_Shipping_API\Inc\Request;
 
-use Easy_Shipping\Lib\Helper;
+use Unax\Helper\Helper;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * API Helper class.
  */
-class API_Helper {
+class Request_Helper {
 	/**
      * Errors.
      *
@@ -352,6 +352,37 @@ class API_Helper {
         }
 
         return true;
+    }
+
+
+    /**
+     * Handle WP_Error instances.
+     *
+     * @param mixed $wp_error The WP_Error instance.
+     *  
+     * @return \WP_REST_Response
+     */
+    public static function handle_wp_error( $wp_error ) : \WP_REST_Response {
+        $error_code = '';
+        $status_code = 400;
+
+        $error_data = $wp_error->get_error_data();
+        if ( isset( $error_data['status'] ) ) {
+            $status_code = $error_data['status'];
+        }
+
+        if ( isset( $error_data['error_code'] ) ) {
+            $error_code = $error_data['error_code'];
+        }
+
+        return new \WP_REST_Response(
+            array(
+                'success'    => false,
+                'error_code' => $error_code,
+                'message'    => $wp_error->get_error_message()
+            ),
+            $status_code
+        );
     }
 
 
