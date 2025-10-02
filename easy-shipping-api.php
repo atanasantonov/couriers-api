@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: Couriers API
- * Description: Couriers API for Easy Shipping.
+ * Plugin Name: Easy Shipping API
+ * Description: Easy Shipping API.
  * Version: 1.0.0
  * Author: Unax
- * Text Domain: couriers-api
+ * Text Domain: easy-shipping-api
  * Domain Path: /languages
  * Requires at least: 5.0
  * Tested up to: 6.3
@@ -13,10 +13,10 @@
  * WC tested up to: 8.0
  * License: Proprietary
  *
- * @package Couriers_API
+ * @package Easy_Shipping_API
  */
 
-namespace Couriers_API;
+namespace Easy_Shipping_API;
 
 use Unax\Helper\Helper;
 
@@ -26,12 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'COURIERS_API_VERSION', '1.0.0' );
-define( 'COURIERS_API_NAME', 'couriers-api' );
-define( 'COURIERS_API_PATH', plugin_dir_path( __FILE__ ) );
-define( 'COURIERS_API_URL', plugin_dir_url( __FILE__ ) );
+define( 'EASY_SHIPPING_API_NAME', 'couriers-api' );
+define( 'EASY_SHIPPING_API_PATH', plugin_dir_path( __FILE__ ) );
+define( 'EASY_SHIPPING_API_URL', plugin_dir_url( __FILE__ ) );
 define( 
-	'COURIERS_API_ERROR_CODES', 
+	'EASY_SHIPPING_API_ERROR_CODES', 
 	array(
 		1  => 'Invalid endpoint',
 		2  => 'Missing endpoint',
@@ -50,7 +49,14 @@ define(
 	)
 );
 
-require COURIERS_API_PATH . 'vendor/autoload.php';
+// Autoload.
+require EASY_SHIPPING_API_PATH . 'vendor/autoload.php';
 
-Helper::set_log_threshold( 'debug' );
+// Include main class.
+require EASY_SHIPPING_API_PATH . 'inc/class-easy-shipping-api.php';
+
+add_action( 'init', array( '\Easy_Shipping_API\Inc\Easy_Shipping_API', 'load_textdomain' ) );
+add_action( 'rest_api_init', array( '\Easy_Shipping_API\Inc\Rest_API', 'register_rest_fields' ) );
+
+Helper::set_log_threshold( WP_DEBUG ? 'debug' : 'error' );
 Helper::config();
