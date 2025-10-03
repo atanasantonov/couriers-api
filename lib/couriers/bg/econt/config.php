@@ -6,8 +6,13 @@
  */
 
 $config = array(
-	'test_url'  => '',
-	'live_url'  => '',
+	'test_url'  => 'https://demo.econt.com/ee/services',
+	'live_url'  => 'https://ee.econt.com/services',
+	'supported_countries' => array(
+		'BG' => 'Bulgaria',
+		'RO' => 'Romania',
+		'GR' => 'Greece',
+	),
 	'endpoints' => array(
 		'CreateLabel' => array(
 			'mode' => array(

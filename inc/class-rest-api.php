@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 use WP_REST_Request;
 use WP_REST_Response;
 use Exception;
-use Easy_Shipping_API\Inc\Request\Request_Helper;
+use Easy_Shipping\Lib\Request\Request_Helper;
 use Easy_Shipping\Lib\Couriers\Courier_Factory;
 
 /**
@@ -117,24 +117,36 @@ class Rest_API {
 
 
 	/**
-	 * Get supported countries.
+	 * Basic request handler.
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
 	 * @return WP_REST_Response 
 	 */	
-	public static function get_countries( WP_REST_Request $request ): WP_REST_Response {	
+	public static function handle_request( WP_REST_Request $request, $method ): WP_REST_Response {
 		$courier = Courier_Factory::create( $request );
 		if ( is_wp_error( $courier ) ) {
 			return Request_Helper::handle_wp_error( $courier );
 		}
 
-		$countries = $courier->get_countries();
-		if ( is_wp_error( $countries ) ) {
-			return Request_Helper::handle_wp_error( $countries );
+		$items = $courier->$method( $request->get_params() );
+		if ( is_wp_error( $items ) ) {
+			return Request_Helper::handle_wp_error( $items );
 		}
 
-		return new WP_REST_Response( $countries, 200 );
+		return new WP_REST_Response( $items, 200 );
+	}
+
+
+	/**
+	 * Get supported countries.
+	 * 
+	 * @param \WP_REST_Request $request WP REST API request object.
+	 * 
+	 * @return WP_REST_Response The REST API response object containing the list of countries.
+	 */	
+	public static function get_countries( WP_REST_Request $request ): WP_REST_Response {	
+		return self::handle_request( $request, 'get_countries' );
 	}
 
 
@@ -143,38 +155,10 @@ class Rest_API {
 	 *
 	 * @param WP_REST_Request $request The REST API request object.
 	 *
-	 * @return WP_REST_Response The REST API response object with status code 200 and
-	 *                          an array containing city data in the format:
-	 *                                  ['id' => int, 'label' => string, 'labelBg' => string],
+	 * @return WP_REST_Response The REST API response object containing the list of cities.
 	 */
 	public static function get_cities( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$courier = self::get_courier_instance( $request );
-			if ( is_wp_error( $courier ) ) {
-				return Request_Helper::handle_wp_error( $courier );
-			}
-
-			$params = $request->get_params();
-			$items  = $courier->get_cities( $params );
-
-			if ( is_wp_error( $items ) ) {
-				$error_data = $items->get_error_data();
-				$status_code = 500;
-
-				if ( isset( $error_data['status'] ) ) {
-					$status_code = $error_data['status'];
-				}
-
-				return new WP_REST_Response(
-					array( 'message' => $items->get_error_message() ),
-					$status_code
-				);
-			}
-
-			return new WP_REST_Response( $items, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'get_cities' );
 	}
 
 
@@ -183,10 +167,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the list of offices.
 	 */
 	public static function get_offices( WP_REST_Request $request ): WP_REST_Response {
-		return self::get_offices_by_type( $request, 'real' );
+		return self::handle_request( $request, 'get_offices' );
 	}
 
 
@@ -195,10 +179,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the list of machines.
 	 */
 	public static function get_machines( WP_REST_Request $request ): WP_REST_Response {
-		return self::get_offices_by_type( $request, 'machine' );
+		return self::handle_request( $request, 'get_machines' );
 	}
 
 
@@ -207,65 +191,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the list of mobile stations.
 	 */
 	public static function get_mobiles( WP_REST_Request $request ): WP_REST_Response {
-		return self::get_offices_by_type( $request, 'mobile' );
-	}
-
-
-	/**
-	 * Get offices by type.
-	 * 
-	 * @param \WP_REST_Request $request WP REST API request object.
-	 * @param string           $type    Type of office to retrieve ('real', 'machine', 'mobile').
-	 * 
-	 * @return WP_REST_Response 
-	 */
-	public static function get_offices_by_type( WP_REST_Request $request, $type = 'real' ): WP_REST_Response  {
-		try {
-			$courier = self::get_courier_instance( $request );
-
-			if ( is_wp_error( $courier ) ) {
-				$error_data = $courier->get_error_data();
-				$status_code = 400;
-
-				if ( isset( $error_data['status'] ) ) {
-					$status_code = $error_data['status'];
-				}
-
-				return new WP_REST_Response(
-					array( 'message' => $courier->get_error_message() ),
-					$status_code
-				);
-			}
-
-			$params = $request->get_params();
-
-			if ( $type === 'machine' ) {
-				$items = $courier->get_machines( $params );
-			} else {
-				$items = $courier->get_offices( $params );
-			}
-
-			if ( is_wp_error( $items ) ) {
-				$error_data = $items->get_error_data();
-				$status_code = 500;
-
-				if ( isset( $error_data['status'] ) ) {
-					$status_code = $error_data['status'];
-				}
-
-				return new WP_REST_Response(
-					array( 'message' => $items->get_error_message() ),
-					$status_code
-				);
-			}
-
-			return new WP_REST_Response( $items, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'get_mobiles' );
 	}
 
 
@@ -274,16 +203,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the list of quarters.
 	 */
 	public static function get_quarters( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$items = array();
-	
-			return new WP_REST_Response( $items, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'get_quarters' );
 	}
 
 
@@ -292,16 +215,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the list of streets.
 	 */
 	public static function get_streets( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$items = array();
-	
-			return new WP_REST_Response( $items, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'get_streets' );
 	}
 
 
@@ -310,16 +227,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the search results.
 	 */
 	public static function search( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$items = array();
-	
-			return new WP_REST_Response( $items, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'search' );
 	}
 
 
@@ -328,16 +239,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the shipping costs.
 	 */
 	public static function calculate_shipping( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$data = array();
-
-			return new WP_REST_Response( $data, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'calculate_shipping' );
 	}
 
 
@@ -346,16 +251,10 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the shipment details.
 	 */
 	public static function create_shipment( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$data = array();
-
-			return new WP_REST_Response( $data, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+		return self::handle_request( $request, 'create_shipment' );
 	}
 
 
@@ -364,15 +263,21 @@ class Rest_API {
 	 * 
 	 * @param \WP_REST_Request $request WP REST API request object.
 	 * 
-	 * @return WP_REST_Response 
+	 * @return WP_REST_Response The REST API response object containing the shipment tracking details.
 	 */
 	public static function track_shipment( WP_REST_Request $request ): WP_REST_Response {
-		try {
-			$data = array();
+		return self::handle_request( $request, 'track_shipment' );
+	}
 
-			return new WP_REST_Response( $data, 200 );
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'message' => $e->getMessage() ), $e->getCode() );
-		}
+
+	/**
+	 * Cancel shipment.
+	 * 
+	 * @param \WP_REST_Request $request WP REST API request object.
+	 * 
+	 * @return WP_REST_Response The REST API response object containing the cancellation result.
+	 */
+	public static function cancel_shipment( WP_REST_Request $request ): WP_REST_Response {
+		return self::handle_request( $request, 'cancel_shipment' );
 	}
 }

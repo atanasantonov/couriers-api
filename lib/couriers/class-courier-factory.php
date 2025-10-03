@@ -90,10 +90,10 @@ class Courier_Factory {
 
 		// Get authorization parameters.
 		$authorization = $request->get_param( 'authorization' );
-		if ( empty( $authorization ) || ! is_array( $authorization ) ) {
+		if ( empty( $authorization )) {
 			return new \WP_Error(
 				'missing_authorization',
-				'Authorization parameters are required and must be an array.',
+				'Authorization parameters are required.',
 				array( 
 					'error_code' => 45,
 					'status' 	 => 400 
@@ -103,7 +103,7 @@ class Courier_Factory {
 
 		// Get mode (test/live).
 		$mode = $request->get_param( 'mode' );
-		if ( empty( $mode ) || ! is_bool( $mode ) ) {
+		if ( empty( $mode ) ) {
 			return new \WP_Error(
 				'missing_mode',
 				'Courier mode is required.',

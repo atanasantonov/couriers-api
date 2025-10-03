@@ -329,7 +329,7 @@ class Request {
 
             return $response;
         } catch ( \Throwable $e ) {
-            API_Helper::handle_exception( $e, 'API response' );
+            Request_Helper::handle_exception( $e, 'API response' );
             $response['code']    = $e->getCode();
             $response['message'] = $e->getMessage();
 

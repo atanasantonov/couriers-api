@@ -19,6 +19,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Econt_API implements Courier_API_Interface {
 	/**
+	 * Get supported countries.
+	 *
+	 * @var array Array of country codes supported by the courier.
+	 */
+	private $supported_countries = array();
+
+	/**
 	 * API base URL .
 	 *
 	 * @var string
@@ -51,13 +58,14 @@ class Econt_API implements Courier_API_Interface {
 	 *
 	 * @param array $config API configuration (username, password, test_mode, etc.).
 	 */
-	public function __construct( $authorization, $test_mode ) {
+	public function __construct( $authorization, $test_mode = true ) {
 		require_once __DIR__ . '/config.php';
 
-		$this->api_url       = $test_mode ? $config['test_url'] : $config['live_url'];
-		$this->test_mode     = $test_mode;
-		$this->endpoints     = $endpoints;
-		$this->authorization = $authorization;		
+		$this->supported_countries = $config['supported_countries'];
+		$this->api_url       	   = $test_mode ? $config['test_url'] : $config['live_url'];
+		$this->test_mode     	   = $test_mode;
+		$this->endpoints     	   = $endpoints;
+		$this->authorization       = $authorization;
 	}
 
 	/**
@@ -80,7 +88,7 @@ class Econt_API implements Courier_API_Interface {
 
 		// Set Basic Auth header.
 		$auth_header = array(
-			'Authorization' => 'Basic ' . base64_encode( $this->authorization['username'] . ':' . $this->authorization['password'] ),
+			'Authorization' => 'Basic ' . $this->authorization,
 		);
 		$request->set_headers( $auth_header );
 
@@ -98,24 +106,24 @@ class Econt_API implements Courier_API_Interface {
 		return $request->response( $response );
 	}
 
+
+	/**
+	 * Get supported countries.
+	 *
+	 * @return array Array of country codes supported by the courier.
+	 */
+	public function get_supported_countries(): array {
+		return $this->supported_countries;
+	}
+
+	
 	/**
 	 * Get courier endpoints.
 	 *
 	 * @return array Array of endpoints supported by the courier.
 	 */
 	public function get_endpoints() {
-		return array(
-			'countries',
-			'cities',
-			'offices',
-			'machines',
-			'quarters',
-			'streets',
-			'search',
-			'calculate',
-			'create',
-			'track',
-		);
+		return $this->endpoints;
 	}
 
 
@@ -124,8 +132,8 @@ class Econt_API implements Courier_API_Interface {
 	 *
 	 * @return array Array of country codes supported by the courier.
 	 */
-	public function get_countries() {
-		$result = $this->request( 'Nomenclatures', 'GetCountries', array() );
+	public function get_countries( $params = array() ) {
+		$result = $this->request( 'Nomenclatures', 'GetCountries', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'] );

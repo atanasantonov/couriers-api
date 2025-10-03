@@ -18,6 +18,15 @@ interface Courier_API_Interface {
 
 	public function __construct( $authorization, $test_mode = true );
 
+
+	/**
+	 * Get supported countries.
+	 *
+	 * @return array Array of country codes supported by the courier.
+	 */
+	public function get_supported_countries();
+	
+
 	/**
 	 * Get courier endpoints.
 	 *
@@ -27,11 +36,11 @@ interface Courier_API_Interface {
 
 
 	/**
-	 * Get supported countries.
+	 * Get countries.
 	 *
-	 * @return array Array of country codes supported by the courier.
+	 * @return array Array of all countries.
 	 */
-	public function get_countries();
+	public function get_countries( $params = array() );
 
 
 	/**
