@@ -129,7 +129,22 @@ class Rest_API {
 			return Request_Helper::handle_wp_error( $courier );
 		}
 
-		$items = $courier->$method( $request->get_params() );
+		$params = $request->get_params();
+		
+		// Remove API params.
+		if ( isset( $params['courier_country'] ) ) {
+			unset( $params['courier_country'] );
+		}
+
+		if ( isset( $params['courier_name'] ) ) {
+			unset( $params['courier_name'] );
+		}
+
+		if ( isset( $params['authorization'] ) ) {
+			unset( $params['authorization'] );
+		}
+
+		$items = $courier->$method( $params );
 		if ( is_wp_error( $items ) ) {
 			return Request_Helper::handle_wp_error( $items );
 		}

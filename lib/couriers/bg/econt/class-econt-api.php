@@ -64,7 +64,7 @@ class Econt_API implements Courier_API_Interface {
 		$this->supported_countries = $config['supported_countries'];
 		$this->api_url       	   = $test_mode ? $config['test_url'] : $config['live_url'];
 		$this->test_mode     	   = $test_mode;
-		$this->endpoints     	   = $endpoints;
+		$this->endpoints     	   = $config['endpoints'];
 		$this->authorization       = $authorization;
 	}
 
@@ -96,14 +96,14 @@ class Econt_API implements Courier_API_Interface {
 		if ( isset( $this->endpoints[ $method ] ) ) {
 			$request->set_endpoints( $this->endpoints );
 			$request->set_endpoint( $method );
-			$request->set_parameters( array_keys( $params ) );
+			$request->set_parameters( array_keys( $this->endpoints[ $method ] ) );
 		}
 
 		// Make request.
-		$response = $request->request( $params, $http_method );
+		$result = $request->request( $params, $http_method );
 
 		// Process response.
-		return $request->response( $response );
+		return $request->response( $result );
 	}
 
 
@@ -130,7 +130,7 @@ class Econt_API implements Courier_API_Interface {
 	/**
 	 * Get supported countries.
 	 *
-	 * @return array Array of country codes supported by the courier.
+	 * @return array|\WP_Error Array of offices on success, WP_Error on failure.
 	 */
 	public function get_countries( $params = array() ) {
 		$result = $this->request( 'Nomenclatures', 'GetCountries', $params );
@@ -187,9 +187,27 @@ class Econt_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of pickup points on success, WP_Error on failure.
 	 */
 	public function get_machines( $params = array() ) {
-		// Econt doesn't have separate machines/pickup points API.
-		// Machines are included in GetOffices response with type filter.
 		$params['type'] = 'APT'; // Automated Pickup Terminal.
+
+		$result = $this->request( 'Nomenclatures', 'GetOffices', $params );
+
+		if ( ! $result['success'] ) {
+			return new \WP_Error( $result['code'], $result['message'] );
+		}
+
+		return $result['data'];
+	}
+
+
+	/**
+	 * Get mobile stations.
+	 *
+	 * @param array $params Search parameters (city, country, etc.).
+	 *
+	 * @return array|\WP_Error Array of mobile stations on success, WP_Error on failure.
+	 */
+	public function get_mobiles( $params = array() ) {
+		$params['type'] = 'MOBILE'; // Mobile Station.
 
 		$result = $this->request( 'Nomenclatures', 'GetOffices', $params );
 

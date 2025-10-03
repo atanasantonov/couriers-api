@@ -119,25 +119,17 @@ class Request {
 	 *
 	 * @param array $request_data Data to prepare.
 	 *
-	 * @return string
+	 * @return array|\WP_Error The prepared data as a JSON string or WP_Error on failure.
 	 *
 	 * @throws \Exception If the endpoint is not set or invalid, or if a required property is missing or invalid.
      */
-    public function prepare( $request_data = array() ): string {
-		$data = '';
-
+    public function prepare( $data = array() ): array|\WP_Error {
         try {
             $endpoints = $this->endpoints;
 
             // Check endpoint.
             if ( empty( $this->endpoint ) ) {
-                throw new \Exception(
-                    sprintf(
-                        'Endpoint "%s" not set',
-                        $this->endpoint
-                    ),
-                    1
-                );
+                throw new \Exception( 'Endpoint not set', 1 );
             }
 
             if ( ! isset( $endpoints[ $this->endpoint ] ) ) {
@@ -154,7 +146,6 @@ class Request {
             $schema = $endpoints[ $this->endpoint ];
 
             // Set parameters.
-            $data = array();
             foreach ( $this->parameters as $parameter ) {
                 if ( ! isset( $schema[ $parameter ] ) ) {
                     throw new \Exception(
@@ -179,7 +170,7 @@ class Request {
                         );
                     }
 
-                    if ( $request_data[ $parameter ] === null ) {
+                    if ( $data[ $parameter ] === null ) {
                         throw new \Exception(
                             sprintf(
                                 "Required property [%s] is null",
@@ -188,7 +179,7 @@ class Request {
                             3
                         );
                     }
-                    if ( $request_data[ $parameter ] === '' ) {
+                    if ( $data[ $parameter ] === '' ) {
                         throw new \Exception(
                             sprintf(
                                 "Required property [%s] is empty",
@@ -200,33 +191,28 @@ class Request {
                 }
 
                 // Check if the property is set and if is not set do not add it to parameters array.
-                if ( null === $request_data[ $parameter ] || '' === $request_data[ $parameter ] ) {
+                if ( ! isset( $data[ $parameter ] ) || null === $data[ $parameter ] || '' === $data[ $parameter ] ) {
                     continue;
                 }
 
-                if ( ! API_Helper::validate_parameter( $data[ $parameter ], $this->endpoint, $parameter )  ) {
+                if ( ! Request_Helper::validate_parameter( $data[ $parameter ], $this->endpoint, $parameter )  ) {
                     throw new \Exception(
                         sprintf(
                             "Invalid parameter, property [%s] value '%s'",
                             $parameter,
-                            $request_data[ $parameter ]
+                            $data[ $parameter ]
                         ),
                         3
                     );
                 }
             }
 
-			// Convert to JSON.
-			$data = json_encode( $request_data );
-			if ( false === $data ) {
-                throw new \Exception( sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 5 );
-            }
+            return $data;
         } catch ( \Exception $e ) {
-            API_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', $this->endpoint ) );
-			return '';
-        } finally {
-			return $data;
-		}
+            Request_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', $this->endpoint ) );
+
+            return new \WP_Error( 'request_prepare_failed', sprintf( 'Prepare request parameters failed. Error: %s', $e->getMessage() ), 13 );
+        }
     }
 
 
@@ -258,19 +244,32 @@ class Request {
 	 * @param array  $request_data Data to send in the request.
 	 * @param string $method       HTTP method (GET, POST, etc.).
 	 *
-	 * @return array|WP_Error The response data or WP_Error on failure.
+	 * @return array|\WP_REST_Response The response data or WP_Error on failure.
 	 */
-	public function request( $request_data = array(), $method = 'GET' ) {
-		$data = $this->prepare( $request_data );
+	public function request( $data = array(), $method = 'GET' ) {
+		$data = $this->prepare( $data );
+        if ( is_wp_error( $data ) ) {
+			return Request_Helper::handle_wp_error( $data );
+		}
 
 		// Default headers.
 		$headers = array(
+			'Accept'       => 'application/json',
 			'Content-Type' => 'application/json',
 		);
 
 		// Merge with custom headers if set.
 		if ( ! empty( $this->headers ) ) {
 			$headers = array_merge( $headers, $this->headers );
+		}
+
+		// Set the request body.
+		if ( 'GET' !== $method ) {
+			$data = json_encode( $data );
+			if ( false === $data ) {
+				$error = new \WP_Error( 'json_encode_failed', sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 5 );
+                return Request_Helper::handle_wp_error( $error );
+            } 
 		}
 
 		// API request.

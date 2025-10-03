@@ -45,6 +45,7 @@ define(
 		10 => 'Response dataset empty',
 		11 => 'Request failed',
 		12 => 'Response data contain errors',
+		13 => 'Request preparation failed',
 
 		// REST API related.
 		30 => 'Authentication failed',

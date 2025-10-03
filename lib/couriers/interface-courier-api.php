@@ -74,6 +74,16 @@ interface Courier_API_Interface {
 
 
 	/**
+	 * Get mobile stations.
+	 *
+	 * @param array $params Search parameters (city, country, etc.).
+	 * 
+	 * @return array|\WP_Error Array of mobile stations on success, WP_Error on failure.
+	 */
+	public function get_mobiles( $params = array() );
+
+
+	/**
 	 * Get streets.
 	 *
 	 * @param array $params Search parameters (city, country, etc.).

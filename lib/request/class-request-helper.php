@@ -379,10 +379,12 @@ class Request_Helper {
             array(
                 'success'    => false,
                 'error_code' => $error_code,
-                'message'    => $wp_error->get_error_message()
+                'message'    => $error_data
             ),
             $status_code
         );
+
+        
     }
 
 
