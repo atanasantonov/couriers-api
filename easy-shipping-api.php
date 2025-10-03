@@ -53,7 +53,12 @@ define(
 		40 => 'Courier country missing',
 		41 => 'Courier name missing',
 		42 => 'Courier not supported',
-		43 => 'Courier configuration file not found',
+		43 => 'Courier not found',
+		44 => 'Courier configuration not found',
+		45 => 'Courier authorization missing',
+		46 => 'Courier mode missing',
+		47 => 'Courier mode not valid',
+		48 => 'Courier method not implemented',
 
 		// General.
 		90 => 'Configuration error',
@@ -66,9 +71,11 @@ require EASY_SHIPPING_API_PATH . 'vendor/autoload.php';
 
 // Include main class.
 require EASY_SHIPPING_API_PATH . 'lib/couriers/class-courier-factory.php';
+require EASY_SHIPPING_API_PATH . 'lib/couriers/interface-courier-api.php';
+require EASY_SHIPPING_API_PATH . 'lib/request/class-request-helper.php';
+require EASY_SHIPPING_API_PATH . 'lib/request/class-request.php';
 require EASY_SHIPPING_API_PATH . 'inc/class-easy-shipping-api.php';
-require EASY_SHIPPING_API_PATH . 'inc/request/class-request-helper.php';
-require EASY_SHIPPING_API_PATH . 'inc/request/class-request.php';	
+require EASY_SHIPPING_API_PATH . 'inc/class-rest-api.php';	
 
 add_action( 'init', array( '\Easy_Shipping_API\Inc\Easy_Shipping_API', 'load_textdomain' ) );
 add_action( 'rest_api_init', array( '\Easy_Shipping_API\Inc\Rest_API', 'register_rest_fields' ) );
@@ -77,7 +84,17 @@ Helper::set_log_threshold( WP_DEBUG ? 'debug' : 'error' );
 Helper::config();
 
 add_action( 'wp', function() {
+	$headers = array(
+		'Content-Type' => 'application/json',
+	);
+
+	$headers2 = array(
+		'Content-Type' => 'text/plain',
+	);
+
+	$merge = array_merge( $headers, $headers2 );
+
 	echo '<pre>';
-	print_r( \Easy_Shipping\Lib\Couriers\Courier_Factory::get_supported_couriers() );
+	print_r( $merge );
 	echo '</pre>';
 } );

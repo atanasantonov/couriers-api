@@ -5,7 +5,7 @@
  * @package Easy_Shipping
  */
 
-namespace Easy_Shipping\Lib\Courier_API;
+namespace Easy_Shipping\Lib\Couriers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,6 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Interface for courier API implementations.
  */
 interface Courier_API_Interface {
+
+	public function __construct( $authorization, $test_mode = true );
+
 	/**
 	 * Get courier endpoints.
 	 *
@@ -28,7 +31,7 @@ interface Courier_API_Interface {
 	 *
 	 * @return array Array of country codes supported by the courier.
 	 */
-	public function get_supported_countries();
+	public function get_countries();
 
 
 	/**
@@ -104,6 +107,7 @@ interface Courier_API_Interface {
 	 * Create shipment.
 	 *
 	 * @param array $params Shipment parameters.
+	 * 
 	 * @return array|\WP_Error Array with shipment data on success, WP_Error on failure.
 	 */
 	public function create_shipment( $params );
@@ -112,8 +116,19 @@ interface Courier_API_Interface {
 	/**
 	 * Track shipment.
 	 *
-	 * @param string $shipment_number Shipment tracking number.
+	 * @param array $params Shipment tracking parameters
+	 * .
 	 * @return array|\WP_Error Array with tracking data on success, WP_Error on failure.
 	 */
-	public function track_shipment( $shipment_number );
+	public function track_shipment( $params );
+
+
+	/**
+	 * Cancel shipment.
+	 *
+	 * @param array $params Shipment cancellation parameters.
+	 * 
+	 * @return array|\WP_Error Array with cancellation data on success, WP_Error on failure.
+	 */
+	public function cancel_shipment( $params );
 }

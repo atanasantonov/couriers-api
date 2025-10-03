@@ -6,7 +6,7 @@
  * @author  Unax
  */
 
-namespace Easy_Shipping\Lib\Courier_API;
+namespace Easy_Shipping\Lib\Request;
 
 /**
  * Request class.
@@ -17,61 +17,68 @@ class Request {
      *
      * @var string
      */
-    public static string $uri = '';
+    public string $uri = '';
 
 	/**
 	 * Endpoints.
 	 *
 	 * @var array
 	 */
-	protected static array $endpoints = array();
+	protected array $endpoints = array();
 
 	/**
 	 * Endpoint.
 	 *
 	 * @var string
 	 */
-	protected static $endpoint = '';
+	protected $endpoint = '';
 
 	/**
 	 * Request parameters.
 	 *
 	 * @var array
 	 */
-	protected static $parameters = array();
+	protected $parameters = array();
 
 
 	/**
 	 * Request data.
 	 *
 	 * @var array
-	 */	
-	protected static $data = array();
+	 */
+	protected $data = array();
+
+	/**
+	 * Request headers.
+	 *
+	 * @var array
+	 */
+	protected $headers = array();
 
 	/**
 	 * Request result.
 	 *
 	 * @var array
 	 */
-	public static $result = array();
+	public $result = array();
 
 	/**
 	 * Set uri.
 	 *
 	 * @param string $uri The URI to set.
 	 */
-	public static function set_uri( string $uri ) {
-		static::$uri = $uri;
+	public function set_uri( string $uri ) {
+		$this->uri = $uri;
 	}
 
 
 	/**
 	 * Set endpoints.
 	 *
-	 * @param string $endpoint The endpoint to set.
+	 * @param array $endpoints The endpoints to set.
 	 */
-	public static function set_endpoints( array $endpoints ): void {
-		static::$endpoints = $endpoints;
+	public function set_endpoints( array $endpoints ): void {
+		$this->endpoints = $endpoints;
 	}
 
 
@@ -80,72 +87,81 @@ class Request {
 	 *
 	 * @param string $endpoint The endpoint to set.
 	 */
-	public static function set_endpoint( string $endpoint ): void {
-		self::$endpoint = $endpoint;
+	public function set_endpoint( string $endpoint ): void {
+		$this->endpoint = $endpoint;
 	}
 
 
 	/**
      * Set parameters.
      *
-     * @param string $property Property name.
-     * @param mixed  $value    Property value.
-	 * 
+     * @param array $parameters Parameters to set.
+	 *
 	 * @throws \Exception If the endpoint is not set or invalid, or if a required property is missing or invalid.
      */
-    public static function set_parameters( array $parameters ): void {
-		self::$parameters = $parameters;
+    public function set_parameters( array $parameters ): void {
+		$this->parameters = $parameters;
+	}
+
+
+	/**
+	 * Set headers.
+	 *
+	 * @param array $headers The headers to set.
+	 */
+	public function set_headers( array $headers ): void {
+		$this->headers = $headers;
 	}
 
 
 	/**
      * Prepare request data.
-	 * 
+	 *
 	 * @param array $request_data Data to prepare.
-	 * 
+	 *
 	 * @return string
-	 * 
+	 *
 	 * @throws \Exception If the endpoint is not set or invalid, or if a required property is missing or invalid.
      */
-    public static function prepare( $request_data = array() ): string {
+    public function prepare( $request_data = array() ): string {
 		$data = '';
 
         try {
-            $endpoints = self::$endpoints;
+            $endpoints = $this->endpoints;
 
             // Check endpoint.
-            if ( empty( self::$endpoint ) ) {
+            if ( empty( $this->endpoint ) ) {
                 throw new \Exception(
                     sprintf(
                         'Endpoint "%s" not set',
-                        self::$endpoint
+                        $this->endpoint
                     ),
                     1
                 );
             }
 
-            if ( ! isset( $endpoints[ self::$endpoint ] ) ) {
+            if ( ! isset( $endpoints[ $this->endpoint ] ) ) {
                 throw new \Exception(
                     sprintf(
                         'Endpoint "%s" not valid',
-                        self::$endpoint
+                        $this->endpoint
                     ),
                     2
                 );
             }
 
             // Get endpoint schema.
-            $schema = $endpoints[ self::$endpoint ];
+            $schema = $endpoints[ $this->endpoint ];
 
             // Set parameters.
             $data = array();
-            foreach ( self::$parameters as $parameter ) {
+            foreach ( $this->parameters as $parameter ) {
                 if ( ! isset( $schema[ $parameter ] ) ) {
                     throw new \Exception(
                         sprintf(
                             'Property "%s" for endpoint "%s" not found in schema',
                             $parameter,
-                            self::$endpoint
+                            $this->endpoint
                         ),
                         3
                     );
@@ -188,7 +204,7 @@ class Request {
                     continue;
                 }
 
-                if ( ! API_Helper::validate_parameter( $data[ $parameter ], self::$endpoint, $parameter )  ) {
+                if ( ! API_Helper::validate_parameter( $data[ $parameter ], $this->endpoint, $parameter )  ) {
                     throw new \Exception(
                         sprintf(
                             "Invalid parameter, property [%s] value '%s'",
@@ -206,7 +222,7 @@ class Request {
                 throw new \Exception( sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 5 );
             }
         } catch ( \Exception $e ) {
-            API_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', self::$endpoint ) );
+            API_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', $this->endpoint ) );
 			return '';
         } finally {
 			return $data;
@@ -219,44 +235,53 @@ class Request {
 	 *
 	 * @return array
 	 */
-	public static function get_result() {
-		return self::$result;
+	public function get_result() {
+		return $this->result;
 	}
 
 
 	/**
-	 * Set the value of $dataSet.
+	 * Set the value of result.
 	 *
-	 * @param array $dataSet The data to set.
+	 * @param array $result The data to set.
 	 *
 	 * @return void
 	 */
-	public static function set_result( $result ) {
-		self::$result = $result;
+	public function set_result( $result ) {
+		$this->result = $result;
 	}
 
 
 	/**
 	 * Request.
-	 * 
+	 *
 	 * @param array  $request_data Data to send in the request.
+	 * @param string $method       HTTP method (GET, POST, etc.).
 	 *
 	 * @return array|WP_Error The response data or WP_Error on failure.
 	 */
-	public static function request( $request_data = array(), $method = 'GET' ) {
-		$data = self::prepare( $request_data );
+	public function request( $request_data = array(), $method = 'GET' ) {
+		$data = $this->prepare( $request_data );
+
+		// Default headers.
+		$headers = array(
+			'Content-Type' => 'application/json',
+		);
+
+		// Merge with custom headers if set.
+		if ( ! empty( $this->headers ) ) {
+			$headers = array_merge( $headers, $this->headers );
+		}
 
 		// API request.
 		$args = array(
 			'method'  => $method,
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
+			'headers' => $headers,
 			'body'    => $data,
 			'timeout' => 30,
 		);
 
-		return wp_remote_request( self::$uri, $args );
+		return wp_remote_request( $this->uri, $args );
 	}
 
 
@@ -272,7 +297,7 @@ class Request {
      *     @type array      $data    Response data (usually an array of results).
      * }
      */
-    public static function response( $request ) : array {
+    public function response( $request ) : array {
         // Initial values.
         $response = array(
             'success' => false,

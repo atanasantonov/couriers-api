@@ -13,7 +13,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use Exception;
 use Easy_Shipping_API\Inc\Request\Request_Helper;
-use Easy_Shipping\Lib\Courier_Factory;
+use Easy_Shipping\Lib\Couriers\Courier_Factory;
 
 /**
  * Class Rest API.
@@ -27,7 +27,7 @@ class Rest_API {
 	public static function register_rest_fields() {
 		register_rest_route( 'api/v1', '/countries', array(
             'methods' => 'GET',
-            'callback' => array( 'Easy_Shipping_API\Inc\Rest_API', 'get_supported_countries' ),
+            'callback' => array( 'Easy_Shipping_API\Inc\Rest_API', 'get_countries' ),
             'permission_callback' => array( 'Easy_Shipping_API\Inc\Rest_API', 'authorize' ),
 		));
 
@@ -104,7 +104,12 @@ class Rest_API {
 		// Check if the request has a valid API key.
 		$api_key = $request->get_header( 'X-API-Key' );
 		if ( empty( $api_key ) ) {
-			// return false;
+			return false;
+		}
+
+		// TODO: Validate the API key against the stored keys.
+		if ( $api_key !== 'test-key' ) {
+			return false;
 		}
 
 		return true;
@@ -112,14 +117,24 @@ class Rest_API {
 
 
 	/**
-	 * Get courier instance from request.
-	 *
-	 * @param WP_REST_Request $request The REST API request object.
-	 *
-	 * @return \Easy_Shipping\Lib\Courier_API\Courier_API_Interface|\WP_Error
-	 */
-	private static function get_courier_instance( WP_REST_Request $request ): \Easy_Shipping\Lib\Courier_API\Courier_API_Interface|\WP_Error {
-		return Courier_Factory::create( $request );
+	 * Get supported countries.
+	 * 
+	 * @param \WP_REST_Request $request WP REST API request object.
+	 * 
+	 * @return WP_REST_Response 
+	 */	
+	public static function get_countries( WP_REST_Request $request ): WP_REST_Response {	
+		$courier = Courier_Factory::create( $request );
+		if ( is_wp_error( $courier ) ) {
+			return Request_Helper::handle_wp_error( $courier );
+		}
+
+		$countries = $courier->get_countries();
+		if ( is_wp_error( $countries ) ) {
+			return Request_Helper::handle_wp_error( $countries );
+		}
+
+		return new WP_REST_Response( $countries, 200 );
 	}
 
 

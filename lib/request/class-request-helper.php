@@ -5,7 +5,7 @@
  * @package Easy_Shipping
  */
 
-namespace Easy_Shipping_API\Inc\Request;
+namespace Easy_Shipping_API\Lib\Request;
 
 use Unax\Helper\Helper;
 
