@@ -93,11 +93,16 @@ class Econt_API implements Courier_API_Interface {
 		$request->set_headers( $auth_header );
 
 		// Set endpoint and parameters for validation.
-		if ( isset( $this->endpoints[ $method ] ) ) {
-			$request->set_endpoints( $this->endpoints );
-			$request->set_endpoint( $method );
-			$request->set_parameters( array_keys( $this->endpoints[ $method ] ) );
+		if ( empty( $this->endpoints[ $method ] ) ) {
+			return new \WP_Error( 'invalid_endpoint', 'Invalid endpoint.', 2 );
 		}
+
+		$request->set_endpoints( $this->endpoints );
+		$request->set_endpoint( $method );
+		$request->set_parameters( array_keys( $this->endpoints[ $method ] ) );
+
+		// Set request method.
+		$http_method = empty( $params ) ? 'GET' : 'POST';
 
 		// Make request.
 		$result = $request->request( $params, $http_method );
