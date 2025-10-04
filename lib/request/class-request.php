@@ -125,25 +125,17 @@ class Request {
      */
     public function prepare( $data = array() ): array|\WP_Error {
         try {
-            $endpoints = $this->endpoints;
-
             // Check endpoint.
             if ( empty( $this->endpoint ) ) {
-                throw new \Exception( 'Endpoint not set', 1 );
+                throw new \Exception( 'Endpoint not set.', 1 );
             }
 
-            if ( ! isset( $endpoints[ $this->endpoint ] ) ) {
-                throw new \Exception(
-                    sprintf(
-                        'Endpoint "%s" not valid',
-                        $this->endpoint
-                    ),
-                    2
-                );
+            if ( ! isset( $this->endpoints[ $this->endpoint ] ) ) {
+                throw new \Exception( sprintf( 'Endpoint "%s" schema not set.', $this->endpoint ), 2 );
             }
 
             // Get endpoint schema.
-            $schema = $endpoints[ $this->endpoint ];
+            $schema = $this->endpoints[ $this->endpoint ];
 
             // Set parameters.
             foreach ( $this->parameters as $parameter ) {
@@ -195,7 +187,7 @@ class Request {
                     continue;
                 }
 
-                if ( ! Request_Helper::validate_parameter( $data[ $parameter ], $this->endpoint, $parameter )  ) {
+                if ( ! Request_Helper::validate_parameter( $this->endpoint, $schema, $parameter, $data[ $parameter ] )  ) {
                     throw new \Exception(
                         sprintf(
                             "Invalid parameter, property [%s] value '%s'",

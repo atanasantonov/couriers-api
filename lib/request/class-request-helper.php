@@ -136,129 +136,53 @@ class Request_Helper {
    /**
      * Validate a parameter value against its definition in the ZERON_OPERATIONS schema.
      *
-     * @param mixed  $value           The value to validate.
-     * @param string $endpoint       The endpoint name (e.g 'GetInventory') or (e.g. 'PutNewSalesDoc').
-     * @param string ...$config_key   The parameter path (e.g 'PageNo')       or (e.g. 'OrderLines', 'WEBDocID').
+     * @param string $endpoint       The endpoint name (e.g 'GetCountries' or 'GetOffices').
+     * @param mixed  $schema         The parameter schema.
+     * @param string $parameter      The parameter (e.g. 'countryCode' or 'idType').
+     * @param mixed  $value          The value to validate.
      *
      * @return bool True if valid, false if invalid.
      */
-    public static function validate_parameter( $value, string $endpoint, string ...$config_key ) {
+    public static function validate_parameter( string $endpoint, array $schema, string $parameter, $value ) : bool {
         try {
-            if ( empty( $endpoint ) ) {
-                throw new \Exception( self::$error_codes[2], 2 );
-            }
-
-            if ( ! self::validate_endpoint( $endpoint ) ) {
-                throw new \Exception( self::$error_codes[1] . " '{$endpoint}'", 1 );
-            }
-
-            $endpoints = self::get_endpoints();
-            if ( empty( $endpoints ) ) {
-                throw new \Exception( self::$error_codes[90] . " '{$endpoint}'", 90 );
-            }
-
-            // Traverse the parameter schema using the path
-            $schema = $endpoints[ $endpoint ];
-            foreach ( $config_key as $segment ) {
-                if ( ! isset( $schema[ $segment ] ) ) {
-                    throw new \Exception( self::$error_codes[4] . " " . implode( '.', $config_key ), 4 );
+            foreach ( $schema as $config_key => $rule ) {
+                if ( is_array( $rule ) ) {
+                   self::validate_parameter( $endpoint, $schema[$config_key], $config_key, $value[$config_key] );
+                   continue;
                 }
-
-                $schema = $schema[ $segment ];
             }
 
-            $type            = $schema['type'] ?? '';
-            $required        = $schema['required'] ?? false;
-            $comma_separated = $schema['comma_separated'] ?? false;
-            $min_size        = $schema['min_size'] ?? null;
-            $max_size        = $schema['max_size'] ?? null;
-
+            $type            = isset( $schema['type'] )             ? $schema['type'] : 'string';
+            $required        = isset( $schema['required'] )         ? $schema['required'] : false;
             if ( false === $required && ( $value === null || $value === '' ) ) {
                 return true;
             }
 
-            // Required check
-            if ( true === $required ) {
+            // Check required.
+            if ( $required ) {
                 if ( $value === null ) {
-                    throw new \Exception(
-                        sprintf(
-                            '%s, Operation %s property [%s] parameter is null',
-                            self::$error_codes[3],
-                            $endpoint,
-                            implode( '.', $config_key )
-                        ),
-                        3
-                    );
+                    throw new \Exception( sprintf( 'Endpoint "%s" required parameter [%s] is null', $endpoint, $parameter ), 3 );
                 }
+
                 if ( $value === '' ) {
-                    throw new \Exception(
-                        sprintf(
-                            '%s (parameter is empty), Operation %s property [%s]',
-                            self::$error_codes[3],
-                            $endpoint,
-                            implode( '.', $config_key )
-                        ),
-                        3
-                    );
+                    throw new \Exception( sprintf( 'Endpoint "%s" required parameter [%s] is empty string', $endpoint, $parameter ), 3 );
                 }
-            }
-
-            // Comma-separated values
-            if ( true === $comma_separated && is_string( $value ) ) {
-                $items = explode( ',', $value );
-                foreach ( $items as $item ) {
-                    if ( ! self::validate_type( trim( $item ), $type ) ) {
-                        throw new \Exception(
-                            sprintf(
-                                "Comma-separated item invalid type, Operation %s property [%s] value '%s', expected type '%s'",
-                                $endpoint,
-                                $item,
-                                implode( '.', $config_key ),
-                                $type
-                            ),
-                            3
-                        );
-                    }
-
-                    if ( ! self::validate_size( $item, $type, $min_size, $max_size ) ) {
-                        throw new \Exception(
-                            sprintf(
-                                "Comma-separated item invalid size, Operation %s property [%s] value '%s, expected type '%s'",
-                                $endpoint,
-                                $item,
-                                implode( '.', $config_key ),
-                                $type
-                            ),
-                            3
-                        );
-                    }
-                }
-                return true;
             }
 
             if ( ! self::validate_type( $value, $type ) ) {
-                throw new \Exception(
-                    sprintf(
-                        "Invalid type, Operation %s property [%s] value '%s', expected type '%s'",
-                        $endpoint,
-                        implode( '.', $config_key ),
-                        $value,
-                        $type
-                    ),
-                    3
-                );
+                throw new \Exception( sprintf( 'Endpoint "%s" required parameter [%s] not type "%s"', $endpoint, $parameter, $type ), 3 );
             }
 
-            if ( ! self::validate_size( $value, $type, $min_size, $max_size ) ) {
-                throw new \Exception(
-                    sprintf(
-                        "Invalid size, Operation %s property [%s] value '%s'",
-                        $endpoint,
-                        implode( '.', $config_key ),
-                        $value,
-                    ),
-                    3
-                );
+            if ( isset( $schema['min_size'] ) && ! self::validate_min_size( $value, $type, $schema['min_size'] ) ) {
+                throw new \Exception( sprintf( 'Endpoint "%s" required parameter [%s] min size "%s"', $endpoint, $parameter, $schema['min_size'] ), 3 );
+            }
+
+            if ( isset( $schema['max_size'] ) && ! self::validate_max_size( $value, $type, $schema['max_size'] ) ) {
+                throw new \Exception( sprintf( 'Endpoint "%s" required parameter [%s] max size "%s"', $endpoint, $parameter, $schema['max_size'] ), 3 );
+            }
+
+            if ( isset( $schema['allowed_values'] ) && ! self::validate_allowed_values( $value, $schema['allowed_values'] ) ) {
+                throw new \Exception( sprintf( 'Endpoint "%s" required parameter [%s] invalid value "%s"', $endpoint, $parameter, $value ), 3 );                
             }
 
             return true;
@@ -272,8 +196,8 @@ class Request_Helper {
     /**
      * Validate type.
      *
-     * @param mixed $value
-     * @param string $type
+     * @param mixed $value Value to validate.
+     * @param string $type Type of the value.
      *
      * @return bool
      */
@@ -321,37 +245,94 @@ class Request_Helper {
         }
     }
 
+
     /**
-     * Validate size.
+     * Validate min size.
      *
-     * @param mixed $value
-     * @param string $type
-     * @param int|null $min_size
-     * @param int|null $max_size
+     * @param mixed    $value      Value to validate.
+     * @param string   $type       Type of the value.
+     * @param int|null $min_size   Minimum allowed size.
      *
      * @return bool
      */
-    public static function validate_size( $value, $type, $min_size = null, $max_size = null ) {
-        if ( 'int' === $type ) {
-            if ( $min_size !== null && $value < $min_size ) {
-                return false;
-            }
-            if ( $max_size !== null && $value > $max_size ) {
-                return false;
-            }
+    public static function validate_min_size( $value, $type, $min_size = null ) {
+        $min_size = null !== $min_size ? (int) $min_size : null;
+        if ( null === $min_size ) {
+            return true;
         }
 
-        if ( 'string' === $type ) {
+        $length = $value;
+        if ( is_array( $value ) ) {
+            $length = count( $value );
+        } 
+
+        if ( in_array( $type, array( 'string', 'date', 'datetime' ), true ) ) {
             $length = strlen( $value );
-            if ( $min_size !== null && $length < $min_size ) {
-                return false;
-            }
-            if ( $max_size !== null && $length > $max_size ) {
-                return false;
-            }
+        }
+
+        if ( $length < $min_size ) {
+            return false;
         }
 
         return true;
+    }
+
+
+    /**
+     * Validate max size.
+     *
+     * @param mixed    $value      Value to validate.
+     * @param string   $type       Type of the value.
+     * @param int|null $max_size   Maximum allowed size.
+     *
+     * @return bool
+     */
+    public static function validate_max_size( $value, $type, $max_size = null ) {      
+        $max_size = null !== $max_size ? (int) $max_size : null;
+        if ( null === $max_size ) {
+            return true;
+        }
+
+        $length = $value;
+        if ( is_array( $value ) ) {
+            $length = count( $value );
+        } 
+
+        if ( in_array( $type, array( 'string', 'date', 'datetime' ), true ) ) {
+            $length = strlen( $value );
+        }
+
+        if ( $length > $max_size ) {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * Validate allowed values.
+     *
+     * @param mixed        $value
+     * @param string       $type
+     * @param mixed|null   $allowed_values
+     *
+     * @return bool
+     */
+    public static function validate_allowed_values( $value, $allowed_values = null ) {
+        if ( null === $allowed_values ) {
+            return true;
+        }
+
+        if ( is_string( $allowed_values ) ) {
+            $allowed_values = explode( ',', $allowed_values );
+        }
+
+        if ( empty( $allowed_values ) ) {
+            return false;
+        }
+
+        return in_array( $value, $allowed_values, true );
     }
 
 

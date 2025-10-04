@@ -14,6 +14,70 @@ $config = array(
 		'GR' => 'Greece',
 	),
 	'endpoints' => array(
+		'GetCountries' => array(),
+		'GetCities' => array(
+			'countryCode' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 3,
+			),
+			'id' => array(
+				'type' => 'int',
+				'required' => false,
+			),
+			'idType' => array(
+				'type' => 'string',
+				'required' => false,
+			),
+			'name' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 100,
+			),
+		),
+		'GetOffices' => array(
+			'countryCode' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 3,
+			),
+			'cityID' => array(
+				'type' => 'int',
+				'required' => false,
+			),
+			'name' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 100,
+			),
+			'code' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 10,
+			),
+		),
+		'GetStreets' => array(
+			'cityID' => array(
+				'type' => 'int',
+				'required' => true,
+			),
+			'name' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 100,
+			),
+		),
+		'GetQuarters' => array(
+			'cityID' => array(
+				'type' => 'int',
+				'required' => true,
+			),
+			'name' => array(
+				'type' => 'string',
+				'required' => false,
+				'max_size' => 100,
+			),
+		),
 		'CreateLabel' => array(
 			'mode' => array(
 				'type' => 'string',
@@ -398,69 +462,5 @@ $config = array(
 				'required' => true,
 			),
 		),
-		'GetCities' => array(
-			'countryCode' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 3,
-			),
-			'id' => array(
-				'type' => 'int',
-				'required' => false,
-			),
-			'idType' => array(
-				'type' => 'string',
-				'required' => false,
-			),
-			'name' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 100,
-			),
-		),
-		'GetOffices' => array(
-			'countryCode' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 3,
-			),
-			'cityID' => array(
-				'type' => 'int',
-				'required' => false,
-			),
-			'name' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 100,
-			),
-			'code' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 10,
-			),
-		),
-		'GetStreets' => array(
-			'cityID' => array(
-				'type' => 'int',
-				'required' => true,
-			),
-			'name' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 100,
-			),
-		),
-		'GetQuarters' => array(
-			'cityID' => array(
-				'type' => 'int',
-				'required' => true,
-			),
-			'name' => array(
-				'type' => 'string',
-				'required' => false,
-				'max_size' => 100,
-			),
-		),
-		'GetCountries' => array(),
 	)
 ); 
