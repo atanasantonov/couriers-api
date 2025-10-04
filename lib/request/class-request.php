@@ -187,7 +187,7 @@ class Request {
                     continue;
                 }
 
-                if ( ! Request_Helper::validate_parameter( $this->endpoint, $schema, $parameter, $data[ $parameter ] )  ) {
+                if ( ! Request_Helper::validate_parameter( $this->endpoint, $schema[$parameter], $parameter, $data[ $parameter ] )  ) {
                     throw new \Exception(
                         sprintf(
                             "Invalid parameter, property [%s] value '%s'",

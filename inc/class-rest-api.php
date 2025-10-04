@@ -131,13 +131,17 @@ class Rest_API {
 
 		$params = $request->get_params();
 		
-		// Remove API params.
+		// Remove Easy Shipping API params.
 		if ( isset( $params['courier_country'] ) ) {
 			unset( $params['courier_country'] );
 		}
 
 		if ( isset( $params['courier_name'] ) ) {
 			unset( $params['courier_name'] );
+		}
+
+		if ( isset( $params['mode'] ) ) {
+			unset( $params['mode'] );
 		}
 
 		if ( isset( $params['authorization'] ) ) {

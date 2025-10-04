@@ -152,8 +152,8 @@ class Request_Helper {
                 }
             }
 
-            $type            = isset( $schema['type'] )             ? $schema['type'] : 'string';
-            $required        = isset( $schema['required'] )         ? $schema['required'] : false;
+            $type     = isset( $schema['type'] )             ? $schema['type'] : 'string';
+            $required = isset( $schema['required'] )         ? $schema['required'] : false;
             if ( false === $required && ( $value === null || $value === '' ) ) {
                 return true;
             }
