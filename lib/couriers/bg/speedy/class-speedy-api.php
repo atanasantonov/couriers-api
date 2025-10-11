@@ -72,56 +72,69 @@ class Speedy_API implements Courier_API_Interface {
 	/**
 	 * Make API request.
 	 *
-	 * @param string $method       Method name (e.g., 'calculate', 'shipment', 'track').
+	 * @param string $endpoint     Endpoint path (e.g., 'calculate', 'shipment', 'track', 'location/site').
 	 * @param array  $params       Request parameters.
-	 * @param string $http_method  HTTP method (GET, POST).
 	 *
 	 * @return array|\WP_Error Response array or WP_Error on failure.
 	 */
-	private function request( $method, $params = array(), $http_method = 'POST' ) {
-		// Create new Request instance.
-		$request = new Request();
+	private function request( $endpoint, $params = array() ) {
+		try {
+			// Create new Request instance.
+			$request = new Request();
 
-		// Set API URI.
-		$url = $this->api_url . '/' . strtolower( $method );
-		$request->set_uri( $url );
+			// Set API URI.
+			$url = $this->api_url . '/' . $endpoint;
+			$request->set_uri( $url );
 
-		// Set authorization.
-		if ( empty( $this->authorization ) ) {
-			return new \WP_Error( 'no_auth', 'Authorization missing', array( 'error_code' => 45, 'status' => 400 ) );
+			// Validate authorization.
+			if ( empty( $this->authorization ) ) {
+				throw new \Exception( 'Authorization missing', 45 );
+			}
+
+			// Decode authorization.
+			$auth_string = base64_decode( $this->authorization );
+			if ( false === $auth_string ) {
+				throw new \Exception( 'Decode authorization failed', 46 );
+			}
+
+			$auth_array = unserialize( $auth_string );
+			if ( false === $auth_array ) {
+				throw new \Exception( 'Unserialize authorization failed', 46 );
+			}
+
+			if ( empty( $auth_array[0] ) ) {
+				throw new \Exception( 'API username missing', 46 );
+			}
+
+			if ( empty( $auth_array[1] ) ) {
+				throw new \Exception( 'API password missing', 46 );
+			}
+
+			// Set endpoint and parameters for validation.
+			if ( empty( $this->endpoints[ $endpoint ] ) ) {
+				return new \WP_Error( 'invalid_endpoint', 'Invalid endpoint: ' . $endpoint, array( 'error_code' => 2, 'status' => 400 ) );
+			}
+
+			$request->set_endpoints( $this->endpoints );
+			$request->set_endpoint( $endpoint );
+			$request->set_parameters( array_keys( $this->endpoints[ $endpoint ] ) );
+
+			// Add authentication to parameters.
+			$params['userName'] = $auth_array[0];
+			$params['password'] = $auth_array[1];
+
+			// All Speedy API requests are POST with JSON body.
+			$result = $request->request( $params, 'POST' );
+
+			return $request->response( $result );
+		} catch ( \Exception $e ) {
+			$result = new \WP_Error(
+				'request_failed',
+				sprintf( 'Request to Speedy API failed. Error: %s', $e->getMessage() ),
+				array( 'error_code' => $e->getCode(), 'status' => 400 )
+			);
+			return $request->response( $result );
 		}
-		
-		if ( empty( $this->authorization['api_key'] ) ) {
-			return new \WP_Error( 'no_auth', 'API Key missing', array( 'error_code' => 46, 'status' => 400 ) );
-		}
-
-		if ( empty( $this->authorization['api_secret'] ) ) {
-			return new \WP_Error( 'no_auth', 'API Secret missing', array( 'error_code' => 46, 'status' => 400 ) );
-		}
-
-		$auth_header = array(
-			'X-Api-Key'    => $this->authorization['api_key'],
-			'X-Api-Secret' => $this->authorization['api_secret'],
-		);
-		$request->set_headers( $auth_header );
-
-		// Set endpoint and parameters for validation.
-		if ( empty( $this->endpoints[ $method ] ) ) {
-			return new \WP_Error( 'invalid_endpoint', 'Invalid endpoint: ' . $method, array( 'error_code' => 2, 'status' => 400 ) );
-		}
-
-		$request->set_endpoints( $this->endpoints );
-		$request->set_endpoint( $method );
-		$request->set_parameters( array_keys( $this->endpoints[ $method ] ) );
-
-		// Set request method.
-		$http_method = empty( $params ) ? 'GET' : 'POST';
-
-		// Make request.
-		$result = $request->request( $params, $http_method );
-
-		// Process response.
-		return $request->response( $result );
 	}
 
 
@@ -153,10 +166,10 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of countries on success, WP_Error on failure.
 	 */
 	public function get_countries( $params = array() ) {
-		$result = $this->request( 'GetCountries', $params );
+		$result = $this->request( 'location/country', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -171,7 +184,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of cities on success, WP_Error on failure.
 	 */
 	public function get_cities( $params = array() ) {
-		$result = $this->request( 'GetSites', $params );
+		$result = $this->request( 'location/site', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
@@ -189,7 +202,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of offices on success, WP_Error on failure.
 	 */
 	public function get_offices( $params = array() ) {
-		$result = $this->request( 'GetOffices', $params );
+		$result = $this->request( 'location/office', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
@@ -207,16 +220,25 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of pickup points on success, WP_Error on failure.
 	 */
 	public function get_machines( $params = array() ) {
-		// Speedy uses type parameter to filter office types.
-		$params['type'] = 'APT';
-
-		$result = $this->request( 'GetOffices', $params );
+		// Speedy APT machines are returned from location/office endpoint.
+		$result = $this->request( 'location/office', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
-		return $result['data'];
+		// Filter only APT type offices.
+		$data = $result['data'];
+		if ( isset( $data['offices'] ) && is_array( $data['offices'] ) ) {
+			$data['offices'] = array_filter(
+				$data['offices'],
+				function ( $office ) {
+					return isset( $office['type'] ) && 'APT' === $office['type'];
+				}
+			);
+		}
+
+		return $data;
 	}
 
 
@@ -241,7 +263,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of quarters on success, WP_Error on failure.
 	 */
 	public function get_quarters( $params = array() ) {
-		$result = $this->request( 'GetQuarters', $params );
+		$result = $this->request( 'location/complex', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
@@ -259,7 +281,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of streets on success, WP_Error on failure.
 	 */
 	public function get_streets( $params = array() ) {
-		$result = $this->request( 'GetStreets', $params );
+		$result = $this->request( 'location/street', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
@@ -277,13 +299,9 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Results on success, WP_Error on failure.
 	 */
 	public function search( $params = array() ) {
-		$result = $this->request( 'ShipmentSearch', $params );
-
-		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
-		}
-
-		return $result['data'];
+		// Speedy doesn't have a dedicated search endpoint in the documented API.
+		// Use track endpoint if searching by parcel number.
+		return new \WP_Error( 'not_implemented', 'Search not implemented. Use track_shipment() for tracking by parcel number.', array( 'error_code' => 49, 'status' => 501 ) );
 	}
 
 
@@ -294,10 +312,10 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array with 'cost' key on success, WP_Error on failure.
 	 */
 	public function calculate_shipping( $params ) {
-		$result = $this->request( 'Calculate', $params );
+		$result = $this->request( 'calculate', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		// Extract price from response.
@@ -319,7 +337,16 @@ class Speedy_API implements Courier_API_Interface {
 			);
 		}
 
-		return new \WP_Error( 'no_price', 'Price not found in response' );
+		// Another possible structure.
+		if ( isset( $data['amount'] ) ) {
+			return array(
+				'cost'     => $data['amount'],
+				'currency' => isset( $data['currency'] ) ? $data['currency'] : 'BGN',
+				'details'  => $data,
+			);
+		}
+
+		return new \WP_Error( 'no_price', 'Price not found in response', array( 'error_code' => 50, 'status' => 500 ) );
 	}
 
 
@@ -330,7 +357,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array with shipment data on success, WP_Error on failure.
 	 */
 	public function create_shipment( $params ) {
-		$result = $this->request( 'Shipment', $params );
+		$result = $this->request( 'shipment', $params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
@@ -343,20 +370,27 @@ class Speedy_API implements Courier_API_Interface {
 	/**
 	 * Track shipment.
 	 *
-	 * @param array $params Tracking parameters with 'parcels' array.
+	 * @param array $params Tracking parameters with 'parcels' array or 'shipment_number'.
 	 * @return array|\WP_Error Array with tracking data on success, WP_Error on failure.
 	 */
 	public function track_shipment( $params ) {
 		// Format parameters for Speedy API.
-		$track_params = array(
-			'parcels' => isset( $params['parcels'] ) ? $params['parcels'] : array( $params['shipment_number'] ),
-		);
+		$track_params = array();
+
+		// Handle different input formats.
+		if ( isset( $params['parcels'] ) ) {
+			$track_params['parcels'] = $params['parcels'];
+		} elseif ( isset( $params['shipment_number'] ) ) {
+			$track_params['parcels'] = array( $params['shipment_number'] );
+		} else {
+			return new \WP_Error( 'missing_params', 'Missing required parameter: parcels or shipment_number', array( 'error_code' => 40, 'status' => 400 ) );
+		}
 
 		if ( isset( $params['language'] ) ) {
 			$track_params['language'] = $params['language'];
 		}
 
-		$result = $this->request( 'Track', $track_params );
+		$result = $this->request( 'track', $track_params );
 
 		if ( ! $result['success'] ) {
 			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
@@ -373,6 +407,8 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array with cancellation data on success, WP_Error on failure.
 	 */
 	public function cancel_shipment( $params ) {
+		// Speedy API cancellation is done via DELETE or specific cancel endpoint.
+		// This is a placeholder - actual implementation depends on Speedy API documentation.
 		return new \WP_Error( 'not_implemented', 'Shipment cancellation not yet implemented for Speedy API', array( 'error_code' => 49, 'status' => 501 ) );
 	}
 }

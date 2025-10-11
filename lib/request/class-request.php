@@ -117,7 +117,7 @@ class Request {
 	/**
      * Prepare request data.
 	 *
-	 * @param array $request_data Data to prepare.
+	 * @param array $data Data to prepare.
 	 *
 	 * @return array|\WP_Error The prepared data as a JSON string or WP_Error on failure.
 	 *
@@ -152,7 +152,7 @@ class Request {
 
                 $required = isset( $schema[ $parameter ]['required'] ) ? $schema[ $parameter ]['required'] : false;
                 if ( true === $required ) {
-					if ( ! isset( $request_data[ $parameter ] ) ) {
+					if ( ! isset( $data[ $parameter ] ) ) {
                         throw new \Exception(
                             sprintf(
                                 "Required property [%s] not set",
@@ -238,15 +238,15 @@ class Request {
 	/**
 	 * Request.
 	 *
-	 * @param array  $request_data Data to send in the request.
-	 * @param string $method       HTTP method (GET, POST, etc.).
+	 * @param array  $data 		Data to send in the request.
+	 * @param string $method    HTTP method (GET, POST, etc.).
 	 *
-	 * @return array|\WP_REST_Response The response data or WP_Error on failure.
+	 * @return array|\WP_Error The response data or WP_Error on failure.
 	 */
 	public function request( $data = array(), $method = 'GET' ) {
 		$data = $this->prepare( $data );
         if ( is_wp_error( $data ) ) {
-			return Request_Helper::handle_wp_error( $data );
+			return $data;
 		}
 
 		// Default headers.
@@ -264,13 +264,11 @@ class Request {
 		if ( 'GET' !== $method ) {
 			$data = json_encode( $data );
 			if ( false === $data ) {
-				$error = new \WP_Error( 
+				return new \WP_Error( 
 					'json_encode_failed', 
 					sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 
 					array( 'error_code' => 5, 'status' => 500 )
 				);
-
-				return Request_Helper::handle_wp_error( $error );
             } 
 		}
 
@@ -289,7 +287,7 @@ class Request {
 	/**
      * Response.
      *
-     * @param array|WP_Error $request The request response.
+     * @param array|\WP_Error $request The request response.
      *
      * @return array {
      *     @type bool       $success Indicates if the response was successful.
@@ -328,7 +326,7 @@ class Request {
             // Decode response body.
             $body = json_decode( $response_body, true );
             if ( empty( $body ) ) {
-                throw new \Exception( sprintf( 'Decode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 6 );
+                throw new \Exception( sprintf( 'Decode JSON failed: %s (%s). Body: %s', json_last_error_msg(), json_last_error(), $response_body ), 6 );
             }
 
             $response['success'] = true;
@@ -337,7 +335,8 @@ class Request {
             return $response;
         } catch ( \Throwable $e ) {
             Request_Helper::handle_exception( $e, 'API response' );
-            $response['code']    = 'request_failed';
+            
+			$response['code']    = 'request_failed';
             $response['message'] = $e->getMessage();
 			$response['data'] = array( 
 				'error_code' => $e->getCode(), 
