@@ -345,11 +345,11 @@ class Request_Helper {
      */
     public static function handle_wp_error( $wp_error ) : \WP_REST_Response {
         $error_code = '';
-        $status_code = 400;
+        $status     = 200;
 
         $error_data = $wp_error->get_error_data();
         if ( isset( $error_data['status'] ) ) {
-            $status_code = $error_data['status'];
+            $status = $error_data['status'];
         }
 
         if ( isset( $error_data['error_code'] ) ) {
@@ -360,12 +360,10 @@ class Request_Helper {
             array(
                 'success'    => false,
                 'error_code' => $error_code,
-                'message'    => $error_data
+                'message'    => $wp_error->get_error_message()
             ),
-            $status_code
+            $status
         );
-
-        
     }
 
 

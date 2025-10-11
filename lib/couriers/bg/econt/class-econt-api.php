@@ -94,7 +94,7 @@ class Econt_API implements Courier_API_Interface {
 
 		// Set endpoint and parameters for validation.
 		if ( empty( $this->endpoints[ $method ] ) ) {
-			return new \WP_Error( 'invalid_endpoint', 'Invalid endpoint.', 2 );
+			return new \WP_Error( 'invalid_endpoint', 'Invalid endpoint.', array( 'error_code' => 2, 'status' => 404 ) );
 		}
 
 		$request->set_endpoints( $this->endpoints );
@@ -141,7 +141,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetCountries', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -159,7 +159,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetCities', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -177,7 +177,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetOffices', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -197,7 +197,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetOffices', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -217,7 +217,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetOffices', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -235,7 +235,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetQuarters', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -253,7 +253,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Nomenclatures', 'GetStreets', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -272,7 +272,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Address', 'validateAddress', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -293,7 +293,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Shipments', 'CreateLabel', $label_params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		// Extract price from response.
@@ -324,7 +324,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Shipments', 'CreateLabel', $label_params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -345,7 +345,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Shipments', 'GetShipmentStatuses', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];
@@ -366,7 +366,7 @@ class Econt_API implements Courier_API_Interface {
 		$result = $this->request( 'Shipments', 'CancelShipment', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'] );
+			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
 		}
 
 		return $result['data'];

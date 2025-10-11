@@ -5,7 +5,21 @@
  * @package Easy_Shipping
  */
 
-$endpoints = array(
+$config = array(
+	'test_url'  => 'https://demo.speedy.bg/api/v1',
+	'live_url'  => 'https://api.speedy.bg/v1',
+	'supported_countries' => array(
+		'BG' => 'Bulgaria',
+		'RO' => 'Romania',
+		'GR' => 'Greece',
+		'HR' => 'Croatia',
+		'SI' => 'Slovenia',
+		'HU' => 'Hungary',
+		'CZ' => 'Czech Republic',
+		'SK' => 'Slovakia',
+		'PL' => 'Poland',
+	),
+	'endpoints' => array(
 	'Calculate' => array(
 		'sender' => array(
 			'type' => 'array',
@@ -413,5 +427,6 @@ $endpoints = array(
 			'type' => 'date',
 			'required' => false,
 		),
+	),
 	),
 );

@@ -83,7 +83,7 @@ class Courier_Factory {
 				'Courier configuration not found.',
 				array( 
 					'error_code' => 44,
-					'status' 	 => 404 
+					'status' 	 => 503
 				)
 			);
 		}
@@ -108,7 +108,7 @@ class Courier_Factory {
 				'missing_mode',
 				'Courier mode is required.',
 				array( 
-					'error_code' => 46,
+					'error_code' => 47,
 					'status' 	 => 400 
 				)
 			);
@@ -119,7 +119,7 @@ class Courier_Factory {
 				'invalid_mode',
 				'Courier mode not valid.',
 				array( 
-					'error_code' => 47,
+					'error_code' => 48,
 					'status' 	 => 400 
 				)
 			);

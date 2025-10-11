@@ -57,9 +57,10 @@ define(
 		43 => 'Courier not found',
 		44 => 'Courier configuration not found',
 		45 => 'Courier authorization missing',
-		46 => 'Courier mode missing',
-		47 => 'Courier mode not valid',
-		48 => 'Courier method not implemented',
+		46 => 'Courier authorization error',
+		47 => 'Courier mode missing',
+		48 => 'Courier mode not valid',
+		49 => 'Courier method not implemented',
 
 		// General.
 		90 => 'Configuration error',

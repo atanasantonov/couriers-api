@@ -203,7 +203,12 @@ class Request {
         } catch ( \Exception $e ) {
             Request_Helper::handle_exception( $e, sprintf( 'Set parameters for endpoint "%s" failed.', $this->endpoint ) );
 
-            return new \WP_Error( 'request_prepare_failed', sprintf( 'Prepare request parameters failed. Error: %s', $e->getMessage() ), 13 );
+            return new \WP_Error( 
+				'request_prepare_failed', 
+				sprintf( 'Prepare request parameters failed. Error: %s', 
+				$e->getMessage() ),  
+				array( 'error_code' => 13, 'status' => 400 )
+			);
         }
     }
 
@@ -259,8 +264,13 @@ class Request {
 		if ( 'GET' !== $method ) {
 			$data = json_encode( $data );
 			if ( false === $data ) {
-				$error = new \WP_Error( 'json_encode_failed', sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 5 );
-                return Request_Helper::handle_wp_error( $error );
+				$error = new \WP_Error( 
+					'json_encode_failed', 
+					sprintf( 'Request data encode JSON failed: %s (%s)', json_last_error_msg(), json_last_error() ), 
+					array( 'error_code' => 5, 'status' => 500 )
+				);
+
+				return Request_Helper::handle_wp_error( $error );
             } 
 		}
 
@@ -292,15 +302,21 @@ class Request {
         // Initial values.
         $response = array(
             'success' => false,
-            'code'    => 0,
+			'code'    => 0,
             'message' => '',
             'data'    => array(),
         );
 
+		$status = 200;
+
         try {
 			// Check if request is WP Error.
 			if ( is_wp_error( $request ) ) {
-				throw new \Exception( $request->get_error_message(), 11 );
+				$error_data = $request->get_error_data();
+				$error_code = isset( $error_data['error_code'] ) ? $error_data['error_code'] : 11;
+				$status     = isset( $error_data['status'] ) ? $error_data['status'] : $status;
+
+				throw new \Exception( $request->get_error_message(), $error_code );
 			}
 
             // Get response body.
@@ -321,8 +337,12 @@ class Request {
             return $response;
         } catch ( \Throwable $e ) {
             Request_Helper::handle_exception( $e, 'API response' );
-            $response['code']    = $e->getCode();
+            $response['code']    = 'request_failed';
             $response['message'] = $e->getMessage();
+			$response['data'] = array( 
+				'error_code' => $e->getCode(), 
+				'status' => $status
+			);
 
             return $response;
         }
