@@ -9,6 +9,7 @@ namespace Easy_Shipping\Lib\Couriers\BG\Econt;
 
 use Easy_Shipping\Lib\Couriers\Courier_API_Interface;
 use Easy_Shipping\Lib\Request\Request;
+use WPMailSMTP\Vendor\Google\Service\Exception;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -79,36 +80,44 @@ class Econt_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Response array or WP_Error on failure.
 	 */
 	private function request( $service, $method, $params = array(), $http_method = 'GET' ) {
-		// Create new Request instance.
-		$request = new Request();
+		try {
+			// Create new Request instance.
+			$request = new Request();
 
-		// Set API URI.
-		$url = $this->api_url . '/' . $service . '/' . $service . 'Service.' . $method . '.json';
-		$request->set_uri( $url );
+			// Set API URI.
+			$url = $this->api_url . '/' . $service . '/' . $service . 'Service.' . $method . '.json';
+			$request->set_uri( $url );
 
-		// Set Basic Auth header.
-		$auth_header = array(
-			'Authorization' => 'Basic ' . $this->authorization,
-		);
-		$request->set_headers( $auth_header );
+			// Set Basic Auth header.
+			$auth_header = array(
+				'Authorization' => 'Basic ' . $this->authorization,
+			);
+			$request->set_headers( $auth_header );
 
-		// Set endpoint and parameters for validation.
-		if ( empty( $this->endpoints[ $method ] ) ) {
-			return new \WP_Error( 'invalid_endpoint', 'Invalid endpoint.', array( 'error_code' => 2, 'status' => 404 ) );
+			// Set endpoint and parameters for validation.
+			if ( ! isset( $this->endpoints[ $method ] ) ) {
+				throw new \Exception( 'Invalid endpoint.', 2 );
+			}
+
+			$request->set_endpoints( $this->endpoints );
+			$request->set_endpoint( $method );
+			$request->set_parameters( array_keys( $this->endpoints[ $method ] ) );
+
+			// Set request method.
+			$http_method = empty( $params ) ? 'GET' : 'POST';
+
+			// Make request.
+			$result = $request->request( $params, $http_method );
+		} catch ( \Exception $e ) {
+			$result = new \WP_Error( 
+				'request_failed', 
+				sprintf( 'Request to Econt API failed. Error: %s', $e->getMessage() ), 
+				array( 'error_code' => $e->getCode(), 'status' => 400 )
+			);
+		} finally {
+			// Process response.
+			return $request->response( $result );
 		}
-
-		$request->set_endpoints( $this->endpoints );
-		$request->set_endpoint( $method );
-		$request->set_parameters( array_keys( $this->endpoints[ $method ] ) );
-
-		// Set request method.
-		$http_method = empty( $params ) ? 'GET' : 'POST';
-
-		// Make request.
-		$result = $request->request( $params, $http_method );
-
-		// Process response.
-		return $request->response( $result );
 	}
 
 
