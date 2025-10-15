@@ -166,13 +166,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of countries on success, WP_Error on failure.
 	 */
 	public function get_countries( $params = array() ) {
-		$result = $this->request( 'location/country', $params );
-
-		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
-		}
-
-		return $result['data'];
+		return $this->request( 'location/country', $params );
 	}
 
 
@@ -184,13 +178,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of cities on success, WP_Error on failure.
 	 */
 	public function get_cities( $params = array() ) {
-		$result = $this->request( 'location/site', $params );
-
-		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
-		}
-
-		return $result['data'];
+		return $this->request( 'location/site', $params );
 	}
 
 
@@ -202,13 +190,7 @@ class Speedy_API implements Courier_API_Interface {
 	 * @return array|\WP_Error Array of offices on success, WP_Error on failure.
 	 */
 	public function get_offices( $params = array() ) {
-		$result = $this->request( 'location/office', $params );
-
-		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
-		}
-
-		return $result['data'];
+		return $this->request( 'location/office', $params );
 	}
 
 
@@ -224,7 +206,7 @@ class Speedy_API implements Courier_API_Interface {
 		$result = $this->request( 'location/office', $params );
 
 		if ( ! $result['success'] ) {
-			return new \WP_Error( $result['code'], $result['message'], $result['data'] );
+			return $result;
 		}
 
 		// Filter only APT type offices.

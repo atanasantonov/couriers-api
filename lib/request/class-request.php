@@ -251,7 +251,6 @@ class Request {
 
 		// Default headers.
 		$headers = array(
-			'Accept'       => 'application/json',
 			'Content-Type' => 'application/json',
 		);
 

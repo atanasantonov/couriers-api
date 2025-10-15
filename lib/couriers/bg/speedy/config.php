@@ -6,8 +6,8 @@
  */
 
 $config = array(
-	'test_url'  => 'https://api.speedy.bg/api/v1',
-	'live_url'  => 'https://api.speedy.bg/api/v1',
+	'test_url'  => 'https://api.speedy.bg/v1',
+	'live_url'  => 'https://api.speedy.bg/v1',
 	'supported_countries' => array(
 		'BG' => 'Bulgaria',
 		'RO' => 'Romania',
@@ -134,6 +134,10 @@ $config = array(
 				'type' => 'string',
 				'required' => false,
 			),
+			'name' => array(
+				'type' => 'string',
+				'required' => false,
+			)
 		),
 
 		// Location - Sites (Cities)
